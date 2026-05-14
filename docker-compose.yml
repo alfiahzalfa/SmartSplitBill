@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  smart-split-bill:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+      - .:/app
+
+volumes:
+  huggingface_cache:

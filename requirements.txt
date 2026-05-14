@@ -1,0 +1,24 @@
+# Web framework
+streamlit==1.45.1
+
+# AI / LLM
+langchain==1.0.5
+langchain-google-genai==3.0.1
+groq==0.13.1
+
+# Image processing
+pillow==11.2.1
+
+# Data
+pandas==2.2.3
+
+# Local AI model (Donut)
+torch==2.7.0
+transformers==4.51.3
+sentencepiece==0.2.0
+xmltodict==0.14.2
+
+# Utils
+babel==2.17.0
+typing_extensions==4.13.2
+python-dotenv==1.0.1
