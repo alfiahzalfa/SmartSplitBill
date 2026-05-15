@@ -69,9 +69,9 @@ def section_selection_view() -> None:
     """Display of page selections."""
     current_page = session_data.current_page.get()
     page_title = {
-        1: "Upload Your Bill",
-        2: "Assign Participants",
-        3: "Report",
+        1: "1. Upload Receipt",
+        2: "2. Assign Items",
+        3: "3. Split Result",
     }[current_page]
 
     col1, col2, col3 = st.columns([0.5, 9, 0.5])
@@ -147,20 +147,34 @@ def main_view() -> None:
 
 def controller():
     """Application main function."""
-    st.title("💵 Split Your Bill")
-    author_col, settings_col = st.columns([5, 5])
+    
+    # Custom beautiful header
+    st.markdown("""
+        <div style='text-align: center; padding-bottom: 2rem;'>
+            <h1 style='background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 3.5rem; margin-bottom: 0; font-weight: 800;'>💵 Smart Split Bill AI</h1>
+            <p style='color: #64748B; font-size: 1.2rem; margin-top: 0.5rem; font-weight: 500;'>Split your expenses fairly and automatically using AI</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    author_col, settings_col = st.columns([8, 2])
     with author_col:
         st.markdown("###### ")
     with settings_col:
-        st.button(
-            label="",
+        settings_clicked = st.button(
+            label="Settings",
             key="settings_button",
             icon=":material/settings:",
-            on_click=view_settings.controller,
-            type="tertiary",
+            type="primary",
+            use_container_width=True
         )
+
+    st.markdown("---")
+
+    if settings_clicked:
+        view_settings.controller()
 
     try:
         main_view()
     except SettingsError as err:
-        view_settings.controller(str(err))
+        if not settings_clicked:
+            view_settings.controller(str(err))

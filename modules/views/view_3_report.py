@@ -22,19 +22,19 @@ def participant_view(participant_report: ParticipantReportData) -> None:
 
         # Subtotal item
         st.markdown(
-            f"###### Subtotal item: "
+            f"###### Item Subtotal: "
             f"{format_number_to_currency(participant_report.purchased_subtotal)}"
         )
 
         # Rincian biaya tambahan proporsional
         if participant_report.charges_breakdown:
-            st.markdown("###### Biaya tambahan (proporsional):")
+            st.markdown("###### Additional Charges (Proportional):")
             for name, amount in participant_report.charges_breakdown:
                 st.markdown(f"- {name}: {format_number_to_currency(amount)}")
 
         # Total biaya tambahan
         st.markdown(
-            f"###### Total biaya tambahan\\*: "
+            f"###### Total Additional Charges\\*: "
             f"{format_number_to_currency(participant_report.purchased_others)}"
         )
 
@@ -47,17 +47,26 @@ def controller(report: ReportData | None) -> bool:
 
     # Ringkasan
     grand_total = sum(p.purchased_total for p in report.participants_reports)
-    st.markdown(
-        f"### 📊 Ringkasan — Grand Total: {format_number_to_currency(grand_total)}"
-    )
-    st.caption(
-        "Biaya tambahan (pajak, service charge, dll) dibagi proporsional "
-        "sesuai jumlah belanja masing-masing orang."
-    )
-    st.divider()
+    
+    st.success("🎉 Success! The bill has been successfully split.")
+    st.markdown("### 📊 Split Summary")
+    
+    with st.container(border=True):
+        st.markdown(
+            f"<h2 style='text-align: center; color: #1E3A8A;'>Grand Total: {format_number_to_currency(grand_total)}</h2>",
+            unsafe_allow_html=True
+        )
+        st.caption(
+            "<div style='text-align: center;'>Additional charges (tax, service charge, discount, etc.) are divided proportionally "
+            "based on each participant's item subtotal.</div>",
+            unsafe_allow_html=True
+        )
+        
+    st.markdown("---")
+    st.markdown("#### Participant Details")
 
     for participant_report in report.participants_reports:
         participant_view(participant_report)
 
-    st.markdown("*\\*pajak, service charge, diskon, dll.*")
+    st.info("💡 **Catatan:** Pajak, service charge, diskon, dll dibagi sesuai persentase item masing-masing.")
     return False

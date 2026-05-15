@@ -12,17 +12,17 @@ IMAGE_DISPLAY_HEIGHT = 480
 
 def get_items_columns_config() -> dict:
     return {
-        "name": "Nama Item",
-        "count": "Jumlah",
-        "total_price": st.column_config.NumberColumn("Total Harga", format="accounting"),
+        "name": "Item Name",
+        "count": "Qty",
+        "total_price": st.column_config.NumberColumn("Total Price", format="accounting"),
         "id": None,
     }
 
 
 def get_charges_columns_config() -> dict:
     return {
-        "name": "Keterangan",
-        "amount": st.column_config.NumberColumn("Jumlah", format="accounting"),
+        "name": "Description",
+        "amount": st.column_config.NumberColumn("Amount", format="accounting"),
     }
 
 
@@ -35,7 +35,7 @@ def resize_to_height(image: Image.Image, target_height: int) -> Image.Image:
 def image_input_view() -> Image.Image | None:
     """Widget upload gambar struk."""
     uploaded_file = st.file_uploader(
-        "Upload gambar struk belanja",
+        "Select receipt image file:",
         type=["jpg", "jpeg", "png"],
         on_change=lambda: session_data.reset_receipt_data(),
     )
@@ -46,7 +46,7 @@ def image_input_view() -> Image.Image | None:
     return image
 
 
-@st.dialog("Membaca struk...")
+@st.dialog("Reading receipt...")
 def read_receipt_view(
     receipt_reader: Callable[[Image.Image], ReceiptData],
     image: Image.Image,
@@ -60,16 +60,16 @@ def read_receipt_view(
             st.rerun()
 
 
-@st.dialog("Konfirmasi Data Struk")
+@st.dialog("Confirm Receipt Data")
 def receipt_read_confirmation_view(receipt: ReceiptData) -> None:
     """
     Pop-up konfirmasi hasil baca AI.
     User bisa edit data sebelum lanjut.
     """
-    st.markdown("### Cek dan edit data berikut jika ada yang salah")
+    st.markdown("### Review and edit data below if necessary")
 
     # Item
-    st.markdown("#### 🛒 Daftar Item")
+    st.markdown("#### 🛒 Items")
     edited_items = st.data_editor(
         receipt.to_items_df(),
         num_rows="dynamic",
@@ -77,11 +77,10 @@ def receipt_read_confirmation_view(receipt: ReceiptData) -> None:
         column_config=get_items_columns_config(),
     )
     subtotal = float(edited_items["total_price"].sum())
-    st.markdown(f"**Subtotal (item saja): {format_number_to_currency(subtotal)}**")
+    st.markdown(f"**Subtotal (Items Only): {format_number_to_currency(subtotal)}**")
 
-    # Additional charges
-    st.markdown("#### 🧾 Biaya Tambahan (Pajak, Service Charge, Diskon, dll)")
-    st.caption("Isi amount negatif untuk diskon. Kosongkan jika tidak ada.")
+    st.markdown("#### 🧾 Additional Charges (Tax, Service, Discount, etc.)")
+    st.caption("Enter negative amount for discounts. Leave blank if none.")
     edited_charges = st.data_editor(
         receipt.to_charges_df(),
         num_rows="dynamic",
@@ -89,18 +88,18 @@ def receipt_read_confirmation_view(receipt: ReceiptData) -> None:
         column_config=get_charges_columns_config(),
     )
     total_charges = float(edited_charges["amount"].sum()) if not edited_charges.empty else 0.0
-    st.markdown(f"**Total biaya tambahan: {format_number_to_currency(total_charges)}**")
+    st.markdown(f"**Total Additional Charges: {format_number_to_currency(total_charges)}**")
 
     # Grand total
-    st.markdown("#### 💰 Total Keseluruhan")
-    st.caption("Angka ini adalah total akhir yang tertera di struk.")
+    st.markdown("#### 💰 Grand Total")
+    st.caption("This is the final total shown on the receipt.")
     edited_total = st.number_input(
         "Total", value=float(receipt.total), label_visibility="collapsed"
     )
     st.markdown(f"**Grand Total: {format_number_to_currency(edited_total)}**")
 
     # Tombol konfirmasi
-    if st.button("✅ Konfirmasi & Lanjut", key="confirm_button"):
+    if st.button("✅ Confirm & Continue", key="confirm_button"):
         charges = [
             AdditionalCharge(name=str(row["name"]), amount=float(row["amount"]))
             for _, row in edited_charges.iterrows()
@@ -121,11 +120,11 @@ def final_receipt_view() -> None:
     """Tampilkan data struk yang sudah dikonfirmasi."""
     receipt = session_data.receipt_data.get()
     if receipt is None:
-        st.warning("Belum ada data yang terbaca...")
+        st.warning("No data extracted yet...")
         return
 
     # Item list
-    st.markdown("##### 🛒 Item")
+    st.markdown("##### 🛒 Items")
     st.dataframe(
         receipt.to_items_df(),
         hide_index=True,
@@ -135,20 +134,23 @@ def final_receipt_view() -> None:
 
     # Additional charges
     if receipt.additional_charges:
-        st.markdown("##### 🧾 Biaya Tambahan")
+        st.markdown("##### 🧾 Additional Charges")
         for ch in receipt.additional_charges:
             st.markdown(f"- {ch.name}: {format_number_to_currency(ch.amount)}")
         st.markdown(
-            f"**Total biaya tambahan: "
+            f"**Total Additional Charges: "
             f"{format_number_to_currency(receipt.total_additional_charges)}**"
         )
 
     # Grand total
-    st.markdown(f"##### 💰 Total: {format_number_to_currency(receipt.total)}")
+    st.markdown(f"##### 💰 Grand Total: {format_number_to_currency(receipt.total)}")
 
 
 def controller(receipt_reader: Callable[[Image.Image], ReceiptData]) -> bool:
     """Controller halaman 1: upload & konfirmasi struk."""
+    st.markdown("### 📷 Upload Receipt")
+    st.info("💡 **Tips:** Pastikan struk difoto dengan jelas, terang, dan tidak terpotong untuk hasil yang maksimal.")
+    
     image = image_input_view()
     if image is None:
         return False
@@ -160,11 +162,16 @@ def controller(receipt_reader: Callable[[Image.Image], ReceiptData]) -> bool:
         else:
             receipt_read_confirmation_view(reading_data)
 
-    st.markdown("### Data Struk Kamu")
-    col1, col2 = st.columns([3, 7])
+    st.markdown("---")
+    
+    col1, col2 = st.columns([4, 6])
     with col1:
-        image_preview_view(image)
+        st.markdown("**🖼️ Original Photo**")
+        with st.container(border=True):
+            image_preview_view(image)
     with col2:
-        final_receipt_view()
+        st.markdown("**📄 Extracted Data**")
+        with st.container(border=True):
+            final_receipt_view()
 
     return session_data.view1_auto_next_page.get_once()

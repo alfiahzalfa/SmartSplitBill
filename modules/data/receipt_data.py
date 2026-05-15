@@ -53,6 +53,8 @@ class ReceiptData:
 
     def to_items_df(self) -> pd.DataFrame:
         """Convert item data ke DataFrame untuk ditampilkan di UI."""
+        if not self.items:
+            return pd.DataFrame(columns=["name", "count", "total_price", "id"])
         return pd.DataFrame([asdict(item) for item in self.items.values()])
 
     # method untuk convert additional charges ke DataFrame

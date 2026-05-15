@@ -16,7 +16,11 @@ class DonutModel(AIModel):
 
     def __init__(self):
         self.processor = AutoProcessor.from_pretrained(MODEL_NAME)
-        self.model = AutoModelForVision2Seq.from_pretrained(MODEL_NAME)
+        self.model = AutoModelForVision2Seq.from_pretrained(
+            MODEL_NAME, 
+            device_map="cpu",
+            ignore_mismatched_sizes=True
+        )
         self.model.eval()
 
     def run(self, image: Image.Image) -> ReceiptData:
@@ -51,17 +55,14 @@ class DonutModel(AIModel):
     def _postprocessing(self, generation_output) -> dict:
         decoded = self.processor.batch_decode(generation_output.sequences)[0]
 
-        # Hapus semua special tokens
         decoded = decoded.replace(self.processor.tokenizer.eos_token, "")
         decoded = decoded.replace(self.processor.tokenizer.pad_token, "")
         decoded = decoded.replace(self.processor.tokenizer.bos_token, "")
         decoded = decoded.strip()
 
-        # Pastikan ada root tag pembuka
         if not decoded.startswith("<s_cord-v2>"):
             decoded = "<s_cord-v2>" + decoded
 
-        # Potong di tag penutup terakhir yang valid, lalu tutup root tag
         if not decoded.endswith("</s_cord-v2>"):
             matches = list(re.finditer(r"</\w+>", decoded))
             if matches:
@@ -71,7 +72,6 @@ class DonutModel(AIModel):
         try:
             return xmltodict.parse(decoded)
         except Exception:
-            # Fallback: kembalikan dict kosong agar _formatting tidak crash
             return {"s_cord-v2": {}}
 
     def _formatting(self, receipt_dict: dict) -> ReceiptData:
